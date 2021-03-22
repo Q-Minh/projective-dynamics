@@ -34,33 +34,18 @@ class solver_t
         auto const& mass      = model_->mass();
         auto const N          = positions.rows();
 
-        // Eigen::MatrixXd M(3 * N, 3 * N);
-        // M.setIdentity();
-        // for (auto i = 0; i < N; ++i)
-        //{
-        //    M.block(3 * i, 3 * i, 3, 3) *= mass(i);
-        //}
-
         auto const dt2_inv = scalar_type{1.} / (dt * dt);
-        // std::cout << "M:\n" << M << "\n";
-        // M *= dt2_inv;
-        // std::cout << "M / dt^2:\n" << M << "\n";
 
         std::vector<Eigen::Triplet<scalar_type>> A_triplets;
         // vectors double their size on each reallocation.
         // we decrease the number of reallocations by preallocating a large chunk
         // upfront to improve performance. 3*N is just a good initial starting capacity
         A_triplets.reserve(3 * N);
-        // Eigen::MatrixXd A(3 * N, 3 * N);
-        // A.setZero();
         auto& constraints = model_->constraints();
         for (auto& constraint : constraints)
         {
-            // auto const SiT_AiT_Ai_Si = constraint->get_wi_SiT_AiT_Ai_Si_dense(positions, mass);
             auto const SiT_AiT_Ai_Si = constraint->get_wi_SiT_AiT_Ai_Si(positions, mass);
-            // std::cout << "constraint:\n" << SiT_AiT_Ai_Si << "\n";
             A_triplets.insert(A_triplets.end(), SiT_AiT_Ai_Si.begin(), SiT_AiT_Ai_Si.end());
-            // A += SiT_AiT_Ai_Si;
         }
 
         for (auto i = 0; i < N; ++i)
@@ -73,14 +58,7 @@ class solver_t
         Eigen::SparseMatrix<scalar_type> A(3 * N, 3 * N);
         A.setFromTriplets(A_triplets.begin(), A_triplets.end());
 
-        // std::cout << "sum wi Si^T Ai^T Ai Si:\n" << A << "\n";
-        // A += M;
-        // std::cout << "M/dt^2 + sum wi Si^T Ai^T Ai Si:\n" << A << "\n";
-
         cholesky_decomposition_.compute(A);
-        // auto const info = cholesky_decomposition_.info();
-
-        // A_ = A;
 
         set_clean();
     }
@@ -105,16 +83,13 @@ class solver_t
         Eigen::VectorXd sn;
         sn.resize(3 * N);
         // format of sn is [x1, y1, z1, x2, y2, z2, ..., xn, yn, zn]^T
-        for (auto i = 0; i < N; ++i)
-            sn.block(3 * i, 0, 3, 1) = explicit_integration.row(i).transpose();
-
-        // std::cout << "p(t):\n" << positions << "\n";
-        // std::cout << "sn(t):\n" << sn << "\n";
+        for (std::size_t i = 0; i < N; ++i)
+            sn.block(3u * i, 0, 3, 1) = explicit_integration.row(i).transpose();
 
         // the matrix-vector product: (M / dt^2) * sn
         Eigen::VectorXd masses;
         masses.resize(3 * N);
-        for (auto i = 0; i < N; ++i)
+        for (std::size_t i = 0; i < N; ++i)
         {
             Eigen::Matrix3d M;
             M.setZero();
@@ -122,11 +97,9 @@ class solver_t
             M(1, 1) = mass(i);
             M(2, 2) = mass(i);
 
-            auto const sni               = sn.block(3 * i, 0, 3, 1);
+            auto const sni               = sn.block(3u * i, 0, 3, 1);
             masses.block(3 * i, 0, 3, 1) = dt2_inv * M * sni;
         }
-
-        // std::cout << "m/dt^2*sn:\n" << masses << "\n";
 
         // initial q(t+1)
         Eigen::VectorXd q = sn;
@@ -141,29 +114,20 @@ class solver_t
             for (auto const& constraint : constraints)
             {
                 constraint->project_wi_SiT_AiT_Bi_pi(q, b);
-                // auto const rhs = constraint->project_wi_SiT_AiT_Bi_pi_dense(q);
-                // std::cout << "constraint projection:\n" << rhs << "\n";
-                // b += rhs;
             }
-            // std::cout << "b sum constraints:\n" << b << "\n";
             b += masses;
-            // std::cout << "b:\n" << b << "\n";
 
             // Ax = b
-            // Eigen::VectorXd const x = cholesky_decomp.solve(b);
             q = cholesky_decomposition_.solve(b);
-            // std::cout << "x:\n" << q << "\n";
         }
 
-        for (auto i = 0; i < N; ++i)
+        for (std::size_t i = 0; i < N; ++i)
         {
-            auto const qn_plus_1 = q.block(3 * i, 0, 3, 1).transpose();
+            auto const qn_plus_1 = q.block(3u * i, 0, 3, 1).transpose();
             auto& qn             = positions.row(i);
             velocities.row(i)    = (qn_plus_1 - qn) * dt_inv;
             positions.row(i)     = qn_plus_1;
         }
-        // std::cout << "q(n+1):\n" << positions << "\n";
-        // std::cout << "v(n+1):\n" << velocities << "\n";
     }
 
   private:

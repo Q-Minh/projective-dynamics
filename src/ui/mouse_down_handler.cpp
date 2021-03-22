@@ -4,6 +4,8 @@ namespace ui {
 
 bool mouse_down_handler_t::operator()(igl::opengl::glfw::Viewer& viewer, int button, int modifier)
 {
+    pd::deformable_mesh_t* model = solver->model();
+
     if (!is_model_ready())
         return false;
 
@@ -57,6 +59,8 @@ bool mouse_down_handler_t::operator()(igl::opengl::glfw::Viewer& viewer, int but
     if (modifier == GLFW_MOD_SHIFT)
     {
         model->toggle_fixed(closest_vertex, physics_params->mass_per_particle);
+        model->add_positional_constraint(closest_vertex, physics_params->positional_constraint_wi);
+        solver->set_dirty();
     }
 
     return process_pick;

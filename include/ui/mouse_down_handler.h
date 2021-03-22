@@ -2,8 +2,9 @@
 #define PD_UI_MOUSE_DOWN_HANDLER_H
 
 #include "pd/deformable_mesh.h"
-#include "picking_state.h"
+#include "pd/solver.h"
 #include "physics_params.h"
+#include "picking_state.h"
 
 #include <GLFW/glfw3.h>
 #include <igl/opengl/glfw/Viewer.h>
@@ -15,17 +16,17 @@ struct mouse_down_handler_t
 {
     std::function<bool()> is_model_ready;
     picking_state_t* picking_state;
-    pd::deformable_mesh_t* model;
+    pd::solver_t* solver;
     physics_params_t* physics_params;
 
     mouse_down_handler_t(
         std::function<bool()> is_model_ready,
         picking_state_t* picking_state,
-        pd::deformable_mesh_t* model, 
+        pd::solver_t* solver,
         physics_params_t* physics_params)
         : is_model_ready(is_model_ready),
           picking_state(picking_state),
-          model(model),
+          solver(solver),
           physics_params(physics_params)
     {
     }

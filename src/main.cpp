@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     viewer.plugins.push_back(&menu);
 
     viewer.callback_mouse_down =
-        ui::mouse_down_handler_t{is_model_ready, &picking_state, &model, &physics_params};
+        ui::mouse_down_handler_t{is_model_ready, &picking_state, &solver, &physics_params};
 
     viewer.callback_mouse_move =
         ui::mouse_move_handler_t{is_model_ready, &picking_state, &model, &fext};
@@ -230,6 +230,7 @@ int main(int argc, char** argv)
                 static std::array<bool, 4u> is_constraint_type_active;
                 if (ImGui::TreeNode("Edge length"))
                 {
+                    ImGui::InputFloat("wi", &physics_params.edge_constraint_wi, 1.f, 10.f, "%.1f");
                     ImGui::Checkbox("Active##EdgeLength", &is_constraint_type_active[0]);
                     ImGui::TreePop();
                 }
@@ -256,14 +257,21 @@ int main(int argc, char** argv)
                     ImGui::TreePop();
                 }
 
-                ImGui::InputFloat("constraint weights", &physics_params.wi, 1.f, 10.f, "%.1f");
+                ImGui::InputFloat(
+                    "Positional constraint wi",
+                    &physics_params.positional_constraint_wi,
+                    10.f,
+                    100.f,
+                    "%.1f");
+
                 if (ImGui::Button("Apply##Constraints", ImVec2((w - p) / 2.f, 0)))
                 {
                     model.immobilize();
                     model.constraints().clear();
+                    solver.set_dirty();
                     if (is_constraint_type_active[0])
                     {
-                        model.constrain_edge_lengths(physics_params.wi);
+                        model.constrain_edge_lengths(physics_params.edge_constraint_wi);
                     }
                     if (is_constraint_type_active[1])
                     {
@@ -282,8 +290,6 @@ int main(int argc, char** argv)
             }
             ImGui::InputFloat("Timestep", &physics_params.dt, 0.01f, 0.1f, "%.4f");
             ImGui::InputInt("Solver iterations", &physics_params.solver_iterations);
-            ImGui::InputInt("Solver substeps", &physics_params.solver_substeps);
-            ImGui::InputFloat("compliance", &physics_params.alpha, 0.00000001f, 0.01, "%.10f");
             ImGui::InputFloat("mass per particle", &physics_params.mass_per_particle, 1, 10, 1);
             ImGui::Checkbox("Gravity", &physics_params.is_gravity_active);
             ImGui::Checkbox("Simulate", &viewer.core().is_animating);

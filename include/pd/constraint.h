@@ -33,11 +33,8 @@ class constraint_t
     scalar_type wi() const { return wi_; }
 
     virtual void project_wi_SiT_AiT_Bi_pi(q_type const& q, Eigen::VectorXd& rhs) const = 0;
-    virtual Eigen::VectorXd project_wi_SiT_AiT_Bi_pi_dense(q_type const& q) const = 0;
     virtual std::vector<Eigen::Triplet<scalar_type>>
     get_wi_SiT_AiT_Ai_Si(positions_type const& p, masses_type const& M) const = 0;
-    virtual Eigen::MatrixXd
-    get_wi_SiT_AiT_Ai_Si_dense(positions_type const& p, masses_type const& M) const = 0;
 
   private:
     std::vector<index_type> indices_;

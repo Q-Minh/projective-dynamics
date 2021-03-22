@@ -14,19 +14,22 @@ bool pre_draw_handler_t::operator()(igl::opengl::glfw::Viewer& viewer)
         if (model->is_fixed(i))
             continue;
 
-        model->mass()(i) = static_cast<double>(physics_params->mass_per_particle);
+        auto const eq = [](double const a, double const b) {
+            double constexpr eps = 1e-5;
+            double const diff    = std::abs(a - b);
+            return diff <= eps;
+        };
+
+        if (!eq(model->mass()(i), static_cast<double>(physics_params->mass_per_particle)))
+        {
+            model->mass()(i) = static_cast<double>(physics_params->mass_per_particle);
+            solver->set_dirty();
+        }
     }
 
     if (viewer.core().is_animating)
     {
         fext->col(1).array() -= physics_params->is_gravity_active ? 9.81 : 0.;
-
-        // solver::solve(
-        //    *model,
-        //    *fext,
-        //    physics_params->dt,
-        //    static_cast<std::uint32_t>(physics_params->solver_iterations),
-        //    static_cast<std::uint32_t>(physics_params->solver_substeps));
 
         if (!solver->ready())
         {

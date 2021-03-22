@@ -2,6 +2,7 @@
 
 #include "pd/deformation_gradient_constraint.h"
 #include "pd/edge_length_constraint.h"
+#include "pd/positional_constraint.h"
 #include "pd/tetrahedron_volume_constraint.h"
 
 #include <array>
@@ -75,6 +76,16 @@ void deformable_mesh_t::constrain_edge_lengths(scalar_type wi)
 
         this->constraints().push_back(std::move(constraint));
     }
+}
+
+void deformable_mesh_t::add_positional_constraint(int vi, scalar_type wi) 
+{
+    auto const& positions = this->p0();
+    this->constraints().push_back(std::make_unique<positional_constraint_t>(
+        std::initializer_list<std::uint32_t>{
+            static_cast<std::uint32_t>(vi)},
+        wi,
+        positions));
 }
 
 //void deformable_mesh_t::constrain_tetrahedron_volumes(scalar_type wi)
