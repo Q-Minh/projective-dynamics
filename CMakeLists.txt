@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(pd VERSION 0.0.1 LANGUAGES CXX)
+project(projective-dynamics VERSION 0.0.1 LANGUAGES CXX)
 
 set_property(GLOBAL PROPERTY USE_FOLDER ON)
 
@@ -70,6 +70,7 @@ PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/edge_length_constraint.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/deformation_gradient_constraint.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/positional_constraint.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/solver.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/tetrahedron_volume_constraint.h
 
     # solver

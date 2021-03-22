@@ -14,7 +14,7 @@ class positional_constraint_t : public constraint_t
     using scalar_type    = double;
     using masses_type    = Eigen::VectorXd;
     using positions_type = typename base_type::positions_type;
-    using position_type  = typename base_type::position_type;
+    using q_type         = typename base_type::q_type;
     using gradient_type  = typename base_type::gradient_type;
 
   public:
@@ -23,6 +23,8 @@ class positional_constraint_t : public constraint_t
     {
         assert(indices.size() == 1u);
     }
+
+
 };
 
 } // namespace pd

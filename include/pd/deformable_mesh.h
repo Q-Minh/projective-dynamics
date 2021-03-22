@@ -59,7 +59,7 @@ class deformable_mesh_t
     void fix(int i)
     {
         fixed_[i] = true;
-        m_(i)     = std::numeric_limits<scalar_type>::max();
+        m_(i)     = scalar_type{1e7};
     }
     void unfix(int i, scalar_type const mass)
     {
@@ -70,7 +70,7 @@ class deformable_mesh_t
     {
         fixed_[i] = !fixed_[i];
         if (fixed_[i])
-            m_(i) = std::numeric_limits<scalar_type>::max();
+            m_(i) = scalar_type{1e7};
         else
             m_(i) = mass_when_unfixed;
     }
@@ -93,11 +93,12 @@ class deformable_mesh_t
 
     void immobilize() { v_.setZero(); }
     void tetrahedralize(Eigen::MatrixXd const& V, Eigen::MatrixXi const& F);
-    void constrain_edge_lengths();
-    void constrain_tetrahedron_volumes();
-    void constrain_deformation_gradient(
-        scalar_type young_modulus,
-        scalar_type poisson_ratio);
+    void constrain_edge_lengths(scalar_type wi = 1000.);
+    //void constrain_tetrahedron_volumes(scalar_type wi = 1.);
+    //void constrain_deformation_gradient(
+    //    scalar_type young_modulus,
+    //    scalar_type poisson_ratio,
+    //    scalar_type wi = 1.);
 
   protected:
     positions_type const& p0() const { return p0_; }

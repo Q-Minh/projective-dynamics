@@ -4,6 +4,8 @@ namespace ui {
 
 bool pre_draw_handler_t::operator()(igl::opengl::glfw::Viewer& viewer)
 {
+    pd::deformable_mesh_t* model = solver->model();
+
     if (!is_model_ready())
         return false;
 
@@ -19,12 +21,20 @@ bool pre_draw_handler_t::operator()(igl::opengl::glfw::Viewer& viewer)
     {
         fext->col(1).array() -= physics_params->is_gravity_active ? 9.81 : 0.;
 
-        solver::solve(
-            *model,
-            *fext,
-            physics_params->dt,
-            static_cast<std::uint32_t>(physics_params->solver_iterations),
-            static_cast<std::uint32_t>(physics_params->solver_substeps));
+        // solver::solve(
+        //    *model,
+        //    *fext,
+        //    physics_params->dt,
+        //    static_cast<std::uint32_t>(physics_params->solver_iterations),
+        //    static_cast<std::uint32_t>(physics_params->solver_substeps));
+
+        if (!solver->ready())
+        {
+            solver->prepare(physics_params->dt);
+        }
+
+        solver->step(*fext, physics_params->solver_iterations);
+
         fext->setZero();
         viewer.data().clear();
         viewer.data().set_mesh(model->positions(), model->faces());

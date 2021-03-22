@@ -11,6 +11,7 @@ struct physics_params_t
     int solver_substeps     = 10;
     float mass_per_particle = 1000.f;
     float alpha             = 0.00000001f;
+    float wi                = 1000.f;
 
     // fem
     float young_modulus = 10000.f;

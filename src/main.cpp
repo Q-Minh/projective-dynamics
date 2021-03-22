@@ -1,6 +1,7 @@
 #include "geometry/get_simple_bar_model.h"
 #include "geometry/get_simple_cloth_model.h"
 #include "pd/deformable_mesh.h"
+#include "pd/solver.h"
 #include "solver/solve.h"
 #include "ui/mouse_down_handler.h"
 #include "ui/mouse_move_handler.h"
@@ -27,6 +28,7 @@ int main(int argc, char** argv)
     Eigen::MatrixX3d fext;
     ui::picking_state_t picking_state{};
     ui::physics_params_t physics_params{};
+    pd::solver_t solver;
 
     auto const is_model_ready = [&]() {
         return model.positions().rows() > 0;
@@ -68,6 +70,7 @@ int main(int argc, char** argv)
             rescale(V);
 
         model = pd::deformable_mesh_t{V, F, T};
+        solver.set_model(&model);
 
         fext.resizeLike(model.positions());
         fext.setZero();
@@ -131,6 +134,24 @@ int main(int argc, char** argv)
         }
         if (ImGui::CollapsingHeader("Geometry", ImGuiTreeNodeFlags_DefaultOpen))
         {
+            if (ImGui::TreeNode("Triangle##Geometry"))
+            {
+                if (ImGui::Button("Compute##Triangle", ImVec2((w - p) / 2.f, 0)))
+                {
+                    Eigen::MatrixXd V;
+                    Eigen::MatrixXi F;
+                    V.resize(3, 3);
+                    V.row(0) = Eigen::RowVector3d{0., 0., 0.};
+                    V.row(1) = Eigen::RowVector3d{1., 0., 0.};
+                    V.row(2) = Eigen::RowVector3d{0., 1., 0.};
+
+                    F.resize(1, 3);
+                    F.row(0) = Eigen::RowVector3i{0, 1, 2};
+
+                    reset_simulation_model(V, F, F, false);
+                }
+                ImGui::TreePop();
+            }
             if (ImGui::TreeNode("Bar"))
             {
                 static int bar_width  = 12;
@@ -212,7 +233,7 @@ int main(int argc, char** argv)
                     ImGui::Checkbox("Active##EdgeLength", &is_constraint_type_active[0]);
                     ImGui::TreePop();
                 }
-                if (ImGui::TreeNode("Tet signed_volume"))
+                if (ImGui::TreeNode("Tet volume"))
                 {
                     ImGui::Checkbox("Active##TetVolume", &is_constraint_type_active[1]);
                     ImGui::TreePop();
@@ -235,23 +256,24 @@ int main(int argc, char** argv)
                     ImGui::TreePop();
                 }
 
+                ImGui::InputFloat("constraint weights", &physics_params.wi, 1.f, 10.f, "%.1f");
                 if (ImGui::Button("Apply##Constraints", ImVec2((w - p) / 2.f, 0)))
                 {
                     model.immobilize();
                     model.constraints().clear();
                     if (is_constraint_type_active[0])
                     {
-                        model.constrain_edge_lengths();
+                        model.constrain_edge_lengths(physics_params.wi);
                     }
                     if (is_constraint_type_active[1])
                     {
-                        model.constrain_tetrahedron_volumes();
+                        // model.constrain_tetrahedron_volumes();
                     }
                     if (is_constraint_type_active[2])
                     {
-                        model.constrain_deformation_gradient(
-                            physics_params.young_modulus,
-                            physics_params.poisson_ratio);
+                        // model.constrain_deformation_gradient(
+                        //    physics_params.young_modulus,
+                        //    physics_params.poisson_ratio);
                     }
                 }
                 std::string const constraint_count = std::to_string(model.constraints().size());
@@ -290,7 +312,7 @@ int main(int argc, char** argv)
     };
 
     viewer.callback_pre_draw =
-        ui::pre_draw_handler_t{is_model_ready, &physics_params, &model, &fext};
+        ui::pre_draw_handler_t{is_model_ready, &physics_params, &solver, &fext};
 
     viewer.launch();
 
