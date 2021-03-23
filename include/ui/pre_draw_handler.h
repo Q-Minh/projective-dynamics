@@ -2,7 +2,6 @@
 #define PD_UI_PRE_DRAW_HANDLER_H
 
 #include "pd/solver.h"
-#include "solver/solve.h"
 #include "ui/physics_params.h"
 
 #include <igl/opengl/glfw/Viewer.h>

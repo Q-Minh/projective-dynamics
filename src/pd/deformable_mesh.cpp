@@ -3,7 +3,7 @@
 #include "pd/deformation_gradient_constraint.h"
 #include "pd/edge_length_constraint.h"
 #include "pd/positional_constraint.h"
-#include "pd/tetrahedron_volume_constraint.h"
+#include "pd/strain_constraint.h"
 
 #include <array>
 #include <igl/barycenter.h>
@@ -87,27 +87,6 @@ void deformable_mesh_t::add_positional_constraint(int vi, scalar_type wi)
         positions));
 }
 
-// void deformable_mesh_t::constrain_tetrahedron_volumes(scalar_type wi)
-//{
-//    auto const& positions = this->p0();
-//    auto const& elements  = this->elements();
-//
-//    for (auto i = 0u; i < elements.rows(); ++i)
-//    {
-//        auto const element = elements.row(i);
-//        auto constraint    = std::make_unique<tetrahedron_volume_constraint_t>(
-//            std::initializer_list<std::uint32_t>{
-//                static_cast<std::uint32_t>(element(0)),
-//                static_cast<std::uint32_t>(element(1)),
-//                static_cast<std::uint32_t>(element(2)),
-//                static_cast<std::uint32_t>(element(3))},
-//            wi,
-//            positions);
-//
-//        this->constraints().push_back(std::move(constraint));
-//    }
-//}
-
 void deformable_mesh_t::constrain_deformation_gradient(scalar_type wi)
 {
     auto const& positions = this->p0();
@@ -124,6 +103,29 @@ void deformable_mesh_t::constrain_deformation_gradient(scalar_type wi)
                 static_cast<std::uint32_t>(element(3))},
             wi,
             positions);
+
+        this->constraints().push_back(std::move(constraint));
+    }
+}
+
+void deformable_mesh_t::constrain_strain(scalar_type min, scalar_type max, scalar_type wi)
+{
+    auto const& positions = this->p0();
+    auto const& elements  = this->elements();
+
+    for (auto i = 0u; i < elements.rows(); ++i)
+    {
+        auto const element = elements.row(i);
+        auto constraint    = std::make_unique<strain_constraint_t>(
+            std::initializer_list<std::uint32_t>{
+                static_cast<std::uint32_t>(element(0)),
+                static_cast<std::uint32_t>(element(1)),
+                static_cast<std::uint32_t>(element(2)),
+                static_cast<std::uint32_t>(element(3))},
+            wi,
+            positions,
+            min,
+            max);
 
         this->constraints().push_back(std::move(constraint));
     }

@@ -1,16 +1,18 @@
-#include "pd/deformation_gradient_constraint.h"
+#include "pd/strain_constraint.h"
 
+#include <array>
 #include <Eigen/Dense>
 #include <Eigen/SVD>
-#include <array>
 
 namespace pd {
 
-deformation_gradient_constraint_t::deformation_gradient_constraint_t(
+strain_constraint_t::strain_constraint_t(
     std::initializer_list<index_type> indices,
     scalar_type wi,
-    positions_type const& p)
-    : base_type(indices, wi), V0_{0.}, DmInv_{}
+    positions_type const& p,
+    scalar_type sigma_min,
+    scalar_type sigma_max)
+    : base_type(indices, wi), V0_{0.}, DmInv_{}, sigma_min_(sigma_min), sigma_max_(sigma_max)
 {
     assert(indices.size() == 4u);
 
@@ -33,9 +35,7 @@ deformation_gradient_constraint_t::deformation_gradient_constraint_t(
     DmInv_ = Dm.inverse();
 }
 
-void deformation_gradient_constraint_t::project_wi_SiT_AiT_Bi_pi(
-    q_type const& q,
-    Eigen::VectorXd& b) const
+void strain_constraint_t::project_wi_SiT_AiT_Bi_pi(q_type const& q, Eigen::VectorXd& b) const
 {
     auto const N  = q.rows() / 3;
     auto const v1 = this->indices().at(0);
@@ -59,68 +59,39 @@ void deformation_gradient_constraint_t::project_wi_SiT_AiT_Bi_pi(
     Ds.col(2) = q3 - q4;
 
     Eigen::Matrix3d const F = Ds * DmInv_;
-    // scalar_type const Vol     = (1. / 6.) * Ds.determinant();
-    // bool const is_V_positive  = Vol >= scalar_type{0.};
-    // bool const is_V0_positive = V0_ >= scalar_type{0.};
 
-    // TODO: tet inversion handling?
-    // bool const is_tet_inverted =
-    //    (is_V_positive && !is_V0_positive) || (!is_V_positive && is_V0_positive);
+    bool const is_tet_inverted = F.determinant() < scalar_type{0.};
 
     Eigen::JacobiSVD<Eigen::Matrix3d> SVD(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
     Eigen::Matrix3d const& U = SVD.matrixU();
     Eigen::Matrix3d const& V = SVD.matrixV();
 
-    Eigen::Matrix3d R = U * V.transpose();
-    if (R.determinant() < 0)
+    Eigen::Vector3d sigma = SVD.singularValues();
+
+    sigma(0) = std::clamp(sigma(0), sigma_min_, sigma_max_);
+    sigma(1) = std::clamp(sigma(1), sigma_min_, sigma_max_);
+    sigma(2) = std::clamp(sigma(2), sigma_min_, sigma_max_);
+
+    if (is_tet_inverted)
     {
-        R.col(2) = -R.col(2);
+        sigma(2) = -sigma(2);
     }
+
+    Eigen::Matrix3d const Fhat = U * sigma.asDiagonal() * V.transpose();
+
+    scalar_type const& p1 = Fhat(0, 0);
+    scalar_type const& p2 = Fhat(1, 0);
+    scalar_type const& p3 = Fhat(2, 0);
+    scalar_type const& p4 = Fhat(0, 1);
+    scalar_type const& p5 = Fhat(1, 1);
+    scalar_type const& p6 = Fhat(2, 1);
+    scalar_type const& p7 = Fhat(0, 2);
+    scalar_type const& p8 = Fhat(1, 2);
+    scalar_type const& p9 = Fhat(2, 2);
 
     auto const w         = this->wi();
     scalar_type const V0 = std::abs(V0_);
     auto const weight    = w * V0;
-
-    // Uncomment to use sparse matrix products to compute right hand side
-    /*static sparse_matrix_type Bi(9, 9);
-    if (Bi.nonZeros() == 0)
-    {
-        Bi.insert(0, 0) = scalar_type{1.};
-        Bi.insert(1, 1) = scalar_type{1.};
-        Bi.insert(2, 2) = scalar_type{1.};
-        Bi.insert(3, 3) = scalar_type{1.};
-        Bi.insert(4, 4) = scalar_type{1.};
-        Bi.insert(5, 5) = scalar_type{1.};
-        Bi.insert(6, 6) = scalar_type{1.};
-        Bi.insert(7, 7) = scalar_type{1.};
-        Bi.insert(8, 8) = scalar_type{1.};
-    }
-
-    sparse_matrix_type pi(9, 1);
-    pi.insert(0, 0) = R(0, 0);
-    pi.insert(1, 0) = R(1, 0);
-    pi.insert(2, 0) = R(2, 0);
-    pi.insert(3, 0) = R(0, 1);
-    pi.insert(4, 0) = R(1, 1);
-    pi.insert(5, 0) = R(2, 1);
-    pi.insert(6, 0) = R(0, 2);
-    pi.insert(7, 0) = R(1, 2);
-    pi.insert(8, 0) = R(2, 2);
-
-    sparse_matrix_type const projection = weight * Ai_Si_.transpose() * Bi * pi;
-    for (int k = 0; k < projection.outerSize(); ++k)
-        for (Eigen::SparseMatrix<scalar_type>::InnerIterator it(projection, k); it; ++it)
-            b(it.row()) += it.value();*/
-
-    scalar_type const& p1 = R(0, 0);
-    scalar_type const& p2 = R(1, 0);
-    scalar_type const& p3 = R(2, 0);
-    scalar_type const& p4 = R(0, 1);
-    scalar_type const& p5 = R(1, 1);
-    scalar_type const& p6 = R(2, 1);
-    scalar_type const& p7 = R(0, 2);
-    scalar_type const& p8 = R(1, 2);
-    scalar_type const& p9 = R(2, 2);
 
     auto const& d11 = DmInv_(0, 0);
     auto const& d21 = DmInv_(1, 0);
@@ -164,10 +135,8 @@ void deformation_gradient_constraint_t::project_wi_SiT_AiT_Bi_pi(
     b(vl + 2) += weight * bl2;
 }
 
-std::vector<Eigen::Triplet<deformation_gradient_constraint_t::scalar_type>>
-deformation_gradient_constraint_t::get_wi_SiT_AiT_Ai_Si(
-    positions_type const& p,
-    masses_type const& M) const
+std::vector<Eigen::Triplet<strain_constraint_t::scalar_type>>
+strain_constraint_t::get_wi_SiT_AiT_Ai_Si(positions_type const& p, masses_type const& M) const
 {
     auto const N  = p.rows();
     auto const v1 = this->indices().at(0);
@@ -197,7 +166,7 @@ deformation_gradient_constraint_t::get_wi_SiT_AiT_Ai_Si(
 
     return triplets;*/
 
-    // We symbolically precomputed the product (Ai*Si)^T * (Ai*Si), 
+    // We symbolically precomputed the product (Ai*Si)^T * (Ai*Si),
     // so here, we directly compute the non-zero entries of wi * (Ai*Si)^T * (Ai*Si)
     // without performing sparse matrix products for optimization.
     auto const& d11 = DmInv_(0, 0);

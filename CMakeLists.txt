@@ -48,10 +48,7 @@ PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/edge_length_constraint.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/deformation_gradient_constraint.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/positional_constraint.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/tetrahedron_volume_constraint.cpp
-
-    # solver
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/solver/solve.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/strain_constraint.cpp
 
     # ui
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/mouse_down_handler.cpp
@@ -71,10 +68,7 @@ PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/deformation_gradient_constraint.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/positional_constraint.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/solver.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/tetrahedron_volume_constraint.h
-
-    # solver
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/solver/solve.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/pd/strain_constraint.h
 
     # ui
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/mouse_down_handler.h

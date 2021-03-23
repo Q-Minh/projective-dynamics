@@ -93,10 +93,10 @@ class deformable_mesh_t
 
     void immobilize() { v_.setZero(); }
     void tetrahedralize(Eigen::MatrixXd const& V, Eigen::MatrixXi const& F);
-    void constrain_edge_lengths(scalar_type wi = 1000.);
-    void add_positional_constraint(int vi, scalar_type wi = 100000.);
-    // void constrain_tetrahedron_volumes(scalar_type wi = 1.);
-    void constrain_deformation_gradient(scalar_type wi = 1000.);
+    void constrain_edge_lengths(scalar_type wi = 1'000'000.);
+    void add_positional_constraint(int vi, scalar_type wi = 1'000'000'000.);
+    void constrain_deformation_gradient(scalar_type wi = 1'000'000.);
+    void constrain_strain(scalar_type min, scalar_type max, scalar_type wi = 1'000'000.);
 
   protected:
     positions_type const& p0() const { return p0_; }

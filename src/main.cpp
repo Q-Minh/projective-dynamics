@@ -2,7 +2,6 @@
 #include "geometry/get_simple_cloth_model.h"
 #include "pd/deformable_mesh.h"
 #include "pd/solver.h"
-#include "solver/solve.h"
 #include "ui/mouse_down_handler.h"
 #include "ui/mouse_move_handler.h"
 #include "ui/physics_params.h"
@@ -227,7 +226,7 @@ int main(int argc, char** argv)
         {
             if (ImGui::TreeNode("Constraints"))
             {
-                static std::array<bool, 4u> is_constraint_type_active;
+                static std::array<bool, 3u> is_constraint_type_active;
                 if (ImGui::TreeNode("Edge length##Constraints"))
                 {
                     ImGui::InputFloat(
@@ -239,23 +238,47 @@ int main(int argc, char** argv)
                     ImGui::Checkbox("Active##EdgeLength", &is_constraint_type_active[0]);
                     ImGui::TreePop();
                 }
-                if (ImGui::TreeNode("Tet volume##Constraints"))
-                {
-                    ImGui::Checkbox("Active##TetVolume", &is_constraint_type_active[1]);
-                    ImGui::TreePop();
-                }
                 if (ImGui::TreeNode("Deformation Gradient##Constraints"))
                 {
+                    ImGui::BulletText("Valid for tetrahedral models only");
                     ImGui::InputFloat(
                         "wi##DeformationGradient",
                         &physics_params.deformation_gradient_constraint_wi,
                         10.f,
                         100.f,
                         "%.1f");
-                    ImGui::Checkbox("Active##DeformationGradient", &is_constraint_type_active[2]);
+                    ImGui::Checkbox("Active##DeformationGradient", &is_constraint_type_active[1]);
+                    ImGui::TreePop();
+                }
+                static float sigma_min = 0.99f;
+                static float sigma_max = 1.01f;
+                if (ImGui::TreeNode("Strain Limit##Constraints"))
+                {
+                    ImGui::BulletText("Valid for tetrahedral models only");
+                    ImGui::InputFloat(
+                        "wi##StrainLimit",
+                        &physics_params.strain_limit_constraint_wi,
+                        10.f,
+                        100.f,
+                        "%.1f");
+                    ImGui::InputFloat(
+                        "Minimum singular value##StrainLimit",
+                        &sigma_min,
+                        0.01f,
+                        0.1f);
+                    ImGui::InputFloat(
+                        "Maximum singular value##StrainLimit",
+                        &sigma_max,
+                        0.01f,
+                        0.1f);
+                    ImGui::Checkbox("Active##StrainLimit", &is_constraint_type_active[2]);
                     ImGui::TreePop();
                 }
 
+                ImGui::BulletText(
+                    "Hold SHIFT and left click points\non the model to fix / unfix them");
+                ImGui::BulletText(
+                    "Positional constraints are only added\nafter clicking on Apply (constraints)");
                 ImGui::InputFloat(
                     "Positional constraint wi",
                     &physics_params.positional_constraint_wi,
@@ -274,12 +297,15 @@ int main(int argc, char** argv)
                     }
                     if (is_constraint_type_active[1])
                     {
-                        // model.constrain_tetrahedron_volumes();
+                        model.constrain_deformation_gradient(
+                            physics_params.deformation_gradient_constraint_wi);
                     }
                     if (is_constraint_type_active[2])
                     {
-                        model.constrain_deformation_gradient(
-                            physics_params.deformation_gradient_constraint_wi);
+                        model.constrain_strain(
+                            sigma_min,
+                            sigma_max,
+                            physics_params.strain_limit_constraint_wi);
                     }
                 }
                 std::string const constraint_count = std::to_string(model.constraints().size());
