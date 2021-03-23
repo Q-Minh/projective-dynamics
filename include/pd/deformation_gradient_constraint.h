@@ -32,7 +32,6 @@ class deformation_gradient_constraint_t : public constraint_t
   private:
     scalar_type V0_;
     Eigen::Matrix3d DmInv_;
-    sparse_matrix_type Ai_Si_;
 };
 
 } // namespace pd

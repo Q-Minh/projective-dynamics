@@ -228,7 +228,7 @@ int main(int argc, char** argv)
             if (ImGui::TreeNode("Constraints"))
             {
                 static std::array<bool, 4u> is_constraint_type_active;
-                if (ImGui::TreeNode("Edge length"))
+                if (ImGui::TreeNode("Edge length##Constraints"))
                 {
                     ImGui::InputFloat(
                         "wi##EdgeLength",
@@ -239,20 +239,20 @@ int main(int argc, char** argv)
                     ImGui::Checkbox("Active##EdgeLength", &is_constraint_type_active[0]);
                     ImGui::TreePop();
                 }
-                if (ImGui::TreeNode("Tet volume"))
+                if (ImGui::TreeNode("Tet volume##Constraints"))
                 {
                     ImGui::Checkbox("Active##TetVolume", &is_constraint_type_active[1]);
                     ImGui::TreePop();
                 }
-                if (ImGui::TreeNode("Strain"))
+                if (ImGui::TreeNode("Deformation Gradient##Constraints"))
                 {
                     ImGui::InputFloat(
-                        "wi##Strain",
+                        "wi##DeformationGradient",
                         &physics_params.deformation_gradient_constraint_wi,
                         10.f,
                         100.f,
                         "%.1f");
-                    ImGui::Checkbox("Strain##Strain", &is_constraint_type_active[2]);
+                    ImGui::Checkbox("Active##DeformationGradient", &is_constraint_type_active[2]);
                     ImGui::TreePop();
                 }
 
