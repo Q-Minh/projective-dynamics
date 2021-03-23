@@ -10,7 +10,9 @@ user interaction.
 ### Constraint types
 - positional
 - edge length
+  ![edge length constrained cloth](./doc/pd-cloth-edge-length.gif)
 - deformation gradient
+  ![deformation gradient constrained bar](./doc/pd-bar-deformation-gradient.gif)
 
 ## Dependencies
 
