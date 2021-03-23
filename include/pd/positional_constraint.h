@@ -26,27 +26,17 @@ class positional_constraint_t : public constraint_t
         : base_type(indices, wi), p0_(3, 1)
     {
         assert(indices.size() == 1u);
-        auto const vi    = this->indices().front();
-        auto const N     = p.rows();
-        p0_.insert(0, 0) = p(vi, 0);
-        p0_.insert(1, 0) = p(vi, 1);
-        p0_.insert(2, 0) = p(vi, 2);
-        Ai_Si_           = get_Ai_Si(vi, N);
-        SiT_AiT_Bi_      = get_SiT_AiT_Bi();
+        auto const vi = this->indices().front();
+        auto const N  = p.rows();
+        p0_           = p.row(vi).transpose();
     }
 
     virtual void project_wi_SiT_AiT_Bi_pi(q_type const& q, Eigen::VectorXd& rhs) const override;
     virtual std::vector<Eigen::Triplet<scalar_type>>
     get_wi_SiT_AiT_Ai_Si(positions_type const& p, masses_type const& M) const override;
 
-  protected:
-    sparse_matrix_type get_Ai_Si(index_type vi, index_type N) const;
-    sparse_matrix_type get_SiT_AiT_Bi() const;
-
   private:
-    sparse_matrix_type p0_;
-    sparse_matrix_type Ai_Si_;
-    sparse_matrix_type SiT_AiT_Bi_;
+    Eigen::Vector3d p0_;
 };
 
 } // namespace pd

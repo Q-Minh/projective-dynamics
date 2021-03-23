@@ -29,19 +29,13 @@ class edge_length_constraint_t : public constraint_t
         auto const e0 = this->indices()[0];
         auto const e1 = this->indices()[1];
 
-        d_      = (p.row(e0) - p.row(e1)).norm();
-        Ai_Si_   = get_Ai_Si(e0, e1, p.rows());
-        SiT_AiT_Bi_ = get_SiT_AiT_Bi(e0, e1);
+        d_ = (p.row(e0) - p.row(e1)).norm();
     }
 
     virtual void project_wi_SiT_AiT_Bi_pi(q_type const& q, Eigen::VectorXd& rhs) const override;
 
     virtual std::vector<Eigen::Triplet<scalar_type>>
     get_wi_SiT_AiT_Ai_Si(positions_type const& p, masses_type const& M) const override;
-
-  protected:
-    sparse_matrix_type get_Ai_Si(int vi, int vj, int N) const;
-    sparse_matrix_type get_SiT_AiT_Bi(int vi, int vj) const;
 
   private:
     scalar_type d_; ///< rest length
