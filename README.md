@@ -8,11 +8,13 @@ using [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) for matrix 
 user interaction.
 
 ### Constraint types
-- positional
-- edge length
+- **positional**
+- **edge length**
   ![edge length constrained cloth](./doc/pd-cloth-edge-length.gif)
-- deformation gradient
+- **deformation gradient**
   ![deformation gradient constrained bar](./doc/pd-bar-deformation-gradient.gif)
+- **strain limiting**
+  ![strain limiting constrained bar](./doc/pd-bar-strain-limiting.gif)
 
 ## Dependencies
 
