@@ -82,7 +82,7 @@ int main(int argc, char** argv)
 
     menu.callback_draw_viewer_window = [&]() {
         ImGui::SetNextWindowSize(ImVec2(300.0f, 480.0f), ImGuiSetCond_FirstUseEver);
-        ImGui::Begin("Position Based Dynamics");
+        ImGui::Begin("Projective Dynamics");
 
         float const w = ImGui::GetContentRegionAvailWidth();
         float const p = ImGui::GetStyle().FramePadding.x;
@@ -230,7 +230,12 @@ int main(int argc, char** argv)
                 static std::array<bool, 4u> is_constraint_type_active;
                 if (ImGui::TreeNode("Edge length"))
                 {
-                    ImGui::InputFloat("wi", &physics_params.edge_constraint_wi, 1.f, 10.f, "%.1f");
+                    ImGui::InputFloat(
+                        "wi##EdgeLength",
+                        &physics_params.edge_constraint_wi,
+                        1.f,
+                        10.f,
+                        "%.1f");
                     ImGui::Checkbox("Active##EdgeLength", &is_constraint_type_active[0]);
                     ImGui::TreePop();
                 }
@@ -239,21 +244,15 @@ int main(int argc, char** argv)
                     ImGui::Checkbox("Active##TetVolume", &is_constraint_type_active[1]);
                     ImGui::TreePop();
                 }
-                if (ImGui::TreeNode("FEM"))
+                if (ImGui::TreeNode("Strain"))
                 {
                     ImGui::InputFloat(
-                        "Young Modulus##FEM",
-                        &physics_params.young_modulus,
+                        "wi##Strain",
+                        &physics_params.deformation_gradient_constraint_wi,
                         10.f,
-                        1000.f,
-                        "%.0f");
-                    ImGui::InputFloat(
-                        "Poisson Ratio##FEM",
-                        &physics_params.poisson_ratio,
-                        0.f,
-                        0.49f,
-                        "%.2f");
-                    ImGui::Checkbox("Quadratic Green strain##FEM", &is_constraint_type_active[2]);
+                        100.f,
+                        "%.1f");
+                    ImGui::Checkbox("Strain##Strain", &is_constraint_type_active[2]);
                     ImGui::TreePop();
                 }
 
@@ -279,9 +278,8 @@ int main(int argc, char** argv)
                     }
                     if (is_constraint_type_active[2])
                     {
-                        // model.constrain_deformation_gradient(
-                        //    physics_params.young_modulus,
-                        //    physics_params.poisson_ratio);
+                        model.constrain_deformation_gradient(
+                            physics_params.deformation_gradient_constraint_wi);
                     }
                 }
                 std::string const constraint_count = std::to_string(model.constraints().size());

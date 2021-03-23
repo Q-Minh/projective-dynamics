@@ -11,6 +11,30 @@
 #include <vector>
 
 namespace pd {
+namespace detail {
+
+inline Eigen::VectorXd flatten(Eigen::MatrixXd const& p)
+{
+    auto const N = p.rows();
+    Eigen::VectorXd q;
+    q.resize(3 * N);
+    for (std::size_t i = 0; i < N; ++i)
+        q.block(3u * i, 0, 3, 1) = p.row(i).transpose();
+
+    return q;
+}
+
+inline Eigen::MatrixXd unflatten(Eigen::VectorXd const& q)
+{
+    auto const N = q.rows() / 3;
+    Eigen::MatrixXd p(N, 3);
+    for (std::size_t i = 0; i < N; ++i)
+        p.row(i) = q.block(3 * i, 0, 3, 1).transpose();
+
+    return p;
+}
+
+} // namespace detail
 
 class solver_t
 {
@@ -80,11 +104,8 @@ class solver_t
         Eigen::MatrixXd const explicit_integration = positions + dt * velocities + dt2 * a;
 
         // sn = flatten(q_explicit)
-        Eigen::VectorXd sn;
-        sn.resize(3 * N);
         // format of sn is [x1, y1, z1, x2, y2, z2, ..., xn, yn, zn]^T
-        for (std::size_t i = 0; i < N; ++i)
-            sn.block(3u * i, 0, 3, 1) = explicit_integration.row(i).transpose();
+        Eigen::VectorXd sn = detail::flatten(explicit_integration);
 
         // the matrix-vector product: (M / dt^2) * sn
         Eigen::VectorXd masses;
@@ -121,13 +142,9 @@ class solver_t
             q = cholesky_decomposition_.solve(b);
         }
 
-        for (std::size_t i = 0; i < N; ++i)
-        {
-            auto const qn_plus_1 = q.block(3u * i, 0, 3, 1).transpose();
-            auto& qn             = positions.row(i);
-            velocities.row(i)    = (qn_plus_1 - qn) * dt_inv;
-            positions.row(i)     = qn_plus_1;
-        }
+        Eigen::MatrixXd const qn_plus_1 = detail::unflatten(q);
+        velocities                      = (qn_plus_1 - positions) * dt_inv;
+        positions                       = qn_plus_1;
     }
 
   private:
