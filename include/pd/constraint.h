@@ -29,6 +29,11 @@ class constraint_t
     {
     }
 
+    virtual scalar_type evaluate(positions_type const& p, masses_type const& M)
+    {
+        return scalar_type{0.};
+    }
+
     std::vector<index_type> const& indices() const { return indices_; }
     scalar_type wi() const { return wi_; }
 

@@ -28,6 +28,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(_libigl)
 
+FetchContent_Declare(matplotplusplus
+    GIT_REPOSITORY https://github.com/alandefreitas/matplotplusplus
+    GIT_TAG origin/master
+)
+FetchContent_GetProperties(matplotplusplus)
+if(NOT matplotplusplus_POPULATED)
+    FetchContent_Populate(matplotplusplus)
+    add_subdirectory(${matplotplusplus_SOURCE_DIR} ${matplotplusplus_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
 add_executable(pd)
 set_target_properties(pd PROPERTIES FOLDER projective-dynamics)
 target_compile_features(pd PRIVATE cxx_std_17)
@@ -84,3 +94,26 @@ PRIVATE
     igl::tetgen
     igl::opengl_glfw_imgui
 )
+
+add_executable(pd-plot)
+set_target_properties(pd-plot PROPERTIES FOLDER projective-dynamics)
+target_compile_features(pd-plot PRIVATE cxx_std_17)
+
+target_include_directories(pd-plot
+PRIVATE
+    include
+)
+
+target_sources(pd-plot
+PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/plot.cpp
+
+    # pd
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/deformable_mesh.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/edge_length_constraint.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/deformation_gradient_constraint.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/positional_constraint.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/pd/strain_constraint.cpp
+)
+
+target_link_libraries(pd-plot PRIVATE matplot igl::core igl::tetgen)

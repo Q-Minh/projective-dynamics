@@ -24,6 +24,8 @@ class deformation_gradient_constraint_t : public constraint_t
         scalar_type wi,
         positions_type const& p);
 
+    virtual scalar_type evaluate(positions_type const& p, masses_type const& M) override;
+
     virtual void project_wi_SiT_AiT_Bi_pi(q_type const& q, Eigen::VectorXd& rhs) const override;
 
     virtual std::vector<Eigen::Triplet<scalar_type>>

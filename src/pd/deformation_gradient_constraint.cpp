@@ -33,6 +33,82 @@ deformation_gradient_constraint_t::deformation_gradient_constraint_t(
     DmInv_ = Dm.inverse();
 }
 
+deformation_gradient_constraint_t::scalar_type
+deformation_gradient_constraint_t::evaluate(positions_type const& p, masses_type const& M)
+{
+    auto const v1 = this->indices().at(0);
+    auto const v2 = this->indices().at(1);
+    auto const v3 = this->indices().at(2);
+    auto const v4 = this->indices().at(3);
+
+    Eigen::Vector3d const p1 = p.row(v1).transpose();
+    Eigen::Vector3d const p2 = p.row(v2).transpose();
+    Eigen::Vector3d const p3 = p.row(v3).transpose();
+    Eigen::Vector3d const p4 = p.row(v4).transpose();
+
+    Eigen::Matrix3d Ds;
+    Ds.col(0) = p1 - p4;
+    Ds.col(1) = p2 - p4;
+    Ds.col(2) = p3 - p4;
+
+    scalar_type const Vsigned = (1. / 6.) * Ds.determinant();
+
+    //if (Vsigned == 0.)
+    //{
+    //    return scalar_type{0.};
+    //}
+
+    bool const is_V_positive  = Vsigned >= 0.;
+    bool const is_V0_positive = V0_ >= 0.;
+    bool const is_tet_inverted =
+        (is_V_positive && !is_V0_positive) || (!is_V_positive && is_V0_positive);
+
+    Eigen::Matrix3d const F = Ds * DmInv_;
+    Eigen::Matrix3d const I = Eigen::Matrix3d::Identity();
+
+    Eigen::JacobiSVD<Eigen::Matrix3d> UFhatV(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::Vector3d const Fsigma = UFhatV.singularValues();
+    Eigen::Matrix3d Fhat;
+    Fhat.setZero();
+    Fhat(0, 0) = Fsigma(0);
+    Fhat(1, 1) = Fsigma(1);
+    Fhat(2, 2) = Fsigma(2);
+
+    Eigen::Matrix3d U       = UFhatV.matrixU();
+    Eigen::Matrix3d const V = UFhatV.matrixV();
+
+    if (is_tet_inverted)
+    {
+        Fhat(2, 2) = -Fhat(2, 2);
+        U.col(2)   = -U.col(2);
+    }
+
+    // stress reaches maximum at 58% compression
+    scalar_type constexpr min_singular_value = 0.577;
+    Fhat(0, 0)                               = std::max(Fhat(0, 0), min_singular_value);
+    Fhat(1, 1)                               = std::max(Fhat(1, 1), min_singular_value);
+    Fhat(2, 2)                               = std::max(Fhat(2, 2), min_singular_value);
+
+    scalar_type const young_modulus = 1'000'000'000.;
+    scalar_type const poisson_ratio = 0.45;
+    scalar_type const mu            = (young_modulus) / (2. * (1 + poisson_ratio));
+    scalar_type const lambda =
+        (young_modulus * poisson_ratio) / ((1 + poisson_ratio) * (1 - 2 * poisson_ratio));
+
+    Eigen::Matrix3d const Ehat     = 0.5 * (Fhat.transpose() * Fhat - I);
+    scalar_type const EhatTrace    = Ehat.trace();
+    Eigen::Matrix3d const Piolahat = Fhat * ((2. * mu * Ehat) + (lambda * EhatTrace * I));
+
+    Eigen::Matrix3d const E  = U * Ehat * V.transpose();
+    scalar_type const Etrace = E.trace();
+    scalar_type const psi    = mu * (E.array() * E.array()).sum() + 0.5 * lambda * Etrace * Etrace;
+
+    scalar_type const V0 = std::abs(V0_);
+    scalar_type const C = V0 * psi;
+
+    return C;
+}
+
 void deformation_gradient_constraint_t::project_wi_SiT_AiT_Bi_pi(
     q_type const& q,
     Eigen::VectorXd& b) const
@@ -197,7 +273,7 @@ deformation_gradient_constraint_t::get_wi_SiT_AiT_Ai_Si(
 
     return triplets;*/
 
-    // We symbolically precomputed the product (Ai*Si)^T * (Ai*Si), 
+    // We symbolically precomputed the product (Ai*Si)^T * (Ai*Si),
     // so here, we directly compute the non-zero entries of wi * (Ai*Si)^T * (Ai*Si)
     // without performing sparse matrix products for optimization.
     auto const& d11 = DmInv_(0, 0);
